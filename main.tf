@@ -83,7 +83,7 @@ resource "ibm_container_vpc_cluster" "app_ocp_cluster-01" {
     name                            = "${var.environment}-ocp-01"
     vpc_id                          = data.ibm_schematics_output.vpc.output_values.vpc_id
     flavor                          = "bx2.4x16"
-    kube_version                    = "4.3_openshift"
+    kube_version                    = "4.4_openshift"
     worker_count                    = "2"
     entitlement                     = "cloud_pak"
     wait_till                       = "MasterNodeReady"

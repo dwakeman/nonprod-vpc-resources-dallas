@@ -47,15 +47,39 @@ data "ibm_resource_instance" "cos_instance" {
   service           = "cloud-object-storage"
 }
 
+data "ibm_resource_group" "kms_group" {
+  name = var.kms_resource_group
+}
+
+data "ibm_resource_instance" "kms_instance" {
+  name              = var.kms_instance
+  resource_group_id = data.ibm_resource_group.kms_group.id
+  service           = "kms"
+}
+
+
+locals {
+    ocp_01_name = "${var.environment}-ocp-01"
+    iks_01_name = "${var.environment}-iks-01"
+}
+
+##############################################################################
+# Create a customer root key
+##############################################################################
+resource "ibm_kp_key" "iks_01_kp_key" {
+    key_protect_id = data.ibm_resource_instance.kms_instance.guid
+    key_name       = "kube-${local.iks_01_name}-crk"
+    standard_key   = false
+}
 
 ##############################################################################
 # Create IKS Cluster
 ##############################################################################
-resource "ibm_container_vpc_cluster" "app_iks_cluster-01" {
+resource "ibm_container_vpc_cluster" "app_iks_cluster_01" {
     name                            = "${var.environment}-iks-01"
     vpc_id                          = data.ibm_schematics_output.vpc.output_values.vpc_id
     flavor                          = "bx2.4x16"
-    kube_version                    = "1.17"
+    kube_version                    = "1.18"
     worker_count                    = "1"
     wait_till                       = "MasterNodeReady"
     disable_public_service_endpoint = false
@@ -74,17 +98,38 @@ resource "ibm_container_vpc_cluster" "app_iks_cluster-01" {
         subnet_id = data.ibm_schematics_output.vpc.output_values.app_subnet3_id
         name      = "${var.region}-3"
     }
+
+    kms_config {
+        instance_id = data.ibm_resource_instance.kms_instance.guid
+        crk_id = ibm_kp_key.iks_01_kp_key.key_id
+        private_endpoint = true
+    }
+
+    depends_on = [ibm_kp_key.iks_01_kp_key]
+
+
+}
+
+
+
+##############################################################################
+# Create a customer root key
+##############################################################################
+resource "ibm_kp_key" "ocp_01_kp_key" {
+    key_protect_id = data.ibm_resource_instance.kms_instance.guid
+    key_name       = "kube-${local.ocp_01_name}-crk"
+    standard_key   = false
 }
 
 ##############################################################################
 # Create OCP Cluster
 ##############################################################################
-resource "ibm_container_vpc_cluster" "app_ocp_cluster-01" {
-    name                            = "${var.environment}-ocp-01"
+resource "ibm_container_vpc_cluster" "app_ocp_cluster_01" {
+    name                            = local.ocp_01_name
     vpc_id                          = data.ibm_schematics_output.vpc.output_values.vpc_id
     flavor                          = "bx2.4x16"
-    kube_version                    = "4.4_openshift"
-    worker_count                    = "2"
+    kube_version                    = "4.5_openshift"
+    worker_count                    = "1"
     entitlement                     = "cloud_pak"
     wait_till                       = "MasterNodeReady"
     disable_public_service_endpoint = false
@@ -99,6 +144,19 @@ resource "ibm_container_vpc_cluster" "app_ocp_cluster-01" {
         subnet_id = data.ibm_schematics_output.vpc.output_values.app_subnet2_id
         name      = "${var.region}-2"
     }
+    zones {
+        subnet_id = data.ibm_schematics_output.vpc.output_values.app_subnet3_id
+        name      = "${var.region}-3"
+    }
+
+    kms_config {
+        instance_id = data.ibm_resource_instance.kms_instance.guid
+        crk_id = ibm_kp_key.ocp_01_kp_key.key_id
+        private_endpoint = true
+    }
+
+    depends_on = [ibm_kp_key.ocp_01_kp_key]
+
 
 }
 

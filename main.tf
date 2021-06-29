@@ -131,7 +131,7 @@ resource "ibm_container_vpc_cluster" "app_ocp_cluster_01" {
     name                            = local.ocp_01_name
     vpc_id                          = data.ibm_schematics_output.vpc.output_values.vpc_id
     flavor                          = "bx2.4x16"
-    kube_version                    = "4.6_openshift"
+    kube_version                    = "4.7_openshift"
     worker_count                    = "1"
     entitlement                     = "cloud_pak"
     wait_till                       = "MasterNodeReady"
@@ -162,7 +162,7 @@ resource "ibm_container_vpc_cluster" "app_ocp_cluster_01" {
 
 
 }
-
+/*
 ##############################################################################
 # Create Worker Pool for infrastructure such as Openshift Container Storage (SDS) 
 ##############################################################################
@@ -195,7 +195,7 @@ resource "ibm_container_vpc_worker_pool" "infra_pool" {
 
     depends_on = [ibm_container_vpc_cluster.app_ocp_cluster_01]
 }
-
+*/
 
 
 
